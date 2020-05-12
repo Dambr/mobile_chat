@@ -13,52 +13,73 @@ AddUserToRoom = require('./AddUserToRoom');
 // RoomName - Полное название комнаты (_id)
 DeleteUserFromRoom = require('./DeleteUserFromRoom');
 
+// Login - логин, котороый указал юзер - строка
+// Password - пароль, который указал юзер - строка
+ValidateUser = require('./ValidateUser');
 
-const ws = new require('ws');
-const wss = new ws.Server({port: 8080});
+// Login - логин пользователя - строка  // Используем, потому что он уникальный
+GetUserData = require('./GetUserData');
 
-const clients = new Set();
-const http = require("http");
+// Login - логин пользователя - строка
+GetListOfRooms = require('./GetListOfRooms');
 
-var mysql = require('mysql');
-var nameOfListOfRoom = "ROOMS"
+const http = require('http');
+const express = require('express');
+const bodyParser = require('body-parser');
+const fs = require('fs');
+const path = require('path');
+const app = express();
+const urlencodedParser = bodyParser.urlencoded({extended : false});
+const server = {host : '127.0.0.1', port : 4000};
 
+app.set('view engine', 'ejs');
+app.use('/public', express.static('public'));
 
+var io = require('socket.io')(http);
 
-http.createServer((req, res) => {
-  // в реальном проекте здесь может также быть код для обработки отличных от websoсket-запросов
-  if (req.url == "/" && req.method == "post"){
-    response.write("Its working");
-  }
-  
-  
-  // здесь мы работаем с каждым запросом как с веб-сокетом
-  wss.handleUpgrade(req, req.socket, Buffer.alloc(0), onSocketConnect);
+app.get('/', function(req, res){
+    // res.sendFile(__dirname + '/index.html');
+    res.render('login.ejs', {message : ''});
+});
+app.post('/validateUser', urlencodedParser, function(req, res){
+    // Если логин и пароль с теми, что в базе совпадают
+    console.log(ValidateUser(req.body.login, req.body.password));
+    // if (ValidateUser(req.body.login, req.body.password)) {
+    //     console.log("All correct");
+    //     userData = GetUserData(req.body.login);
+    //     rooms = GetListOfRooms(req.body.login);
+        
+    //     res.render('lk.ejs', {
+    //         id: userData.id,
+    //         name: userData.name,
+    //         login: userData.login,
+    //         surname: userData.surname,
+    //         patronymic: userData.patronymic,
+    //         rooms
+    //     });
+    // } else {
+    //     res.render('login.ejs', {message: 'Неверное имя пользователя или пароль'});
+    // }
 });
 
-function onSocketConnect(ws) {
-  clients.add(ws);
-
-  ws.on('message', function(message) {
-    message = message.slice(0, 5000); // максимальный размер сообщения 50
-    if (message[0] == '`'){
-        check = checkChatRoom(message.slice(1),con,nameOfListOfRoom);
-        if (check != 'none'){
-          client.send('`' + check[0]['RName']);
-        }
-    }else{
-      listMessages.push(message);
-      for(let client of clients) {
-        client.send("clearChat");
-        for(let me of listMessages) {
-          client.send(me);
-        }
-      }
-    }
-	  
-
-  ws.on('close', function() {
-    clients.delete(ws);
-  });
+app.get('/chat', function(req, res){
+    // res.sendFile(__dirname + '/index.html');
+    res.sendFile(__dirname + '/test.html');
 });
-}
+
+io.on('connection', function(socket){
+    console.log('a user connected');
+    socket.on('disconnect', function(){
+        console.log('user disconnected');
+    });
+});
+
+io.on('connection', function(socket){
+    socket.on('chat message', function(msg){
+        io.emit('chat message', msg);
+    });
+});
+
+app.listen(server.port, server.host, ()=>{
+	console.log(server);
+});
