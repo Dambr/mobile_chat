@@ -1,0 +1,46 @@
+Ваш логин:<br>
+<div id="login"><%= login %></div>
+Название комнаты:<br>
+<div id="room"><%= roomName %></div>
+<br><br><br>
+<ul id="participants">
+Список Участников:<br>
+<%= participants %><br><br><br>
+</ul>
+Последние 5 сообщений:<br>
+<%= lastMessages %><br><br><br>
+<!doctype html>
+<html>
+<head>
+    <title>Socket.IO chat</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.2.13/dist/semantic.min.css">
+</head>
+<body>
+<ul id="messages"></ul>
+<form action="">
+    <input id="m" autocomplete="off" /><button>Send</button>
+</form>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js"></script>
+<script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+<!-- <script src="https://cdn.jsdelivr.net/npm/semantic-ui@2.2.13/dist/semantic.min.js"></script> -->
+<script>
+    $(function () {
+        var socket = io();
+        socket.emit('join', {room: document.getElementById("room").textContent});
+        $('form').submit(function(){
+            socket.emit('chat message', {
+                author: document.getElementById("login").textContent,
+                room: document.getElementById("room").textContent,
+                message:$('#m').val()
+            });
+            $('#m').val('');
+            return false;
+        });
+        socket.on('chat message', function(msg){
+            $('#messages').append($('<li>').text(msg.message));
+        });
+    });
+</script>
+</body>
+</html>

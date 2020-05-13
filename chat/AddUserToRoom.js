@@ -1,18 +1,23 @@
 const mysql = require('mysql');
 module.exports = (UserId, RoomName) => {
     const connection = mysql.createConnection(require('./dbConfig'));
+    let room_id;
     new Promise(function(response, reject){
-        let room_id = RoomName.split('_');
-        room_id = room_id[room_id.length - 1];
-        connection.query("INSERT INTO users_in_rooms VALUES(" +
-            UserId + "," +
-            room_id +
-            ")",
-            (err, res) => {
-                if (err) throw err;
-                response();
-            }
-        );
+        connection.query("SELECT id FROM rooms WHERE name = " + 
+        "'" + RoomName + "'",
+        (err, res) => {
+            if (err) throw err;
+            room_id = res[0]['id'];
+            connection.query("INSERT INTO users_in_rooms VALUES(" +
+                UserId + "," +
+                room_id +
+                ")",
+                (err, res) => {
+                    if (err) throw err;
+                    response();
+                }
+            );
+        });
     })
     .then(
         () => {

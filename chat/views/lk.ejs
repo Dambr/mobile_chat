@@ -1,15 +1,80 @@
 Данные пользователя:
 <ul>
-    <li>id: <%= id %></li>
-    <li>login: <%= login %></li>
+    <li id = "MyId">id: <%= id %></li>
+    <li id = "MyLogin">login: <%= login %></li>
+    <li>password: <%= password %></li>
     <li>name: <%= name %></li>
     <li>surname: <%= surname %></li>
     <li>patronymic: <%= patronymic %></li>
 </ul>
 <br>
 Список доступных комнат:
-<ul>
+<ul id="accessible_rooms">
     <% rooms.forEach(function(room){ %>
-        <li><%= room %></li>
+        <li>
+            <form action="/room" method="post">
+                <input type="text" name="login" value="<%= login %>" style="display: none;">
+                <input type="submit" name="name" value="<%= room %>">
+            </form>
+        </li>
     <% }); %>
 </ul>
+<br>
+<input type="text" id="NameOfNewRoom">
+<button onclick="CreateNewRoom()">Создать новую комнату</button>
+<!-- <form action="/createNewRoom" method="POST">
+    <input type="text" name="name"><br>
+    <input type="text" name="id_admin" value="<%= id %>" style="display: none;"><br>
+    <input type="submit" value="Создать новую комнату">
+</form> -->
+<script>
+    async function CreateNewRoom(){
+        let name = document.getElementById("NameOfNewRoom").value
+        console.log(name);
+        if (name != '') {
+            // console.log('Name валидно');
+            // let formData = new FormData();
+            // formData.append("id_admin", Number(document.getElementById("MyId").textContent.split(' ')[1]));
+            // formData.append("name", name)
+            // for (var value of formData.values()) {
+            //     console.log(value); 
+            // }
+            const response = await fetch('http://localhost:4000/createNewRoom', {
+                method: 'POST',
+                body: JSON.stringify({
+                    name,
+                    id_admin: Number(document.getElementById("MyId").textContent.split(' ')[1])
+                }),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            const result = await response.json();
+            let li = document.createElement('li');
+            let form = document.createElement('form');
+            form.action = "/room";
+            form.method = "POST";
+
+            let f_input = document.createElement('input');
+            
+            f_input.type = "text"
+            f_input.name = "login"
+            f_input.value = document.getElementById("MyLogin").textContent.split(' ')[1]
+            f_input.style.display = "none";
+            
+            let s_input = document.createElement('input');
+
+            s_input.type = "submit"
+            s_input.name = "name"
+            s_input.value = result.data;
+
+            form.appendChild(f_input);
+            form.appendChild(s_input);
+
+            li.appendChild(form);
+            document.getElementById('accessible_rooms').appendChild(li);
+        }
+    }
+  
+  
+</script>

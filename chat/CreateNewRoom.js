@@ -1,5 +1,5 @@
 const mysql = require('mysql');
-module.exports = (RoomName, id_admin) => {
+module.exports = (RoomName, id_admin, RESPONSE) => {
     const connection = mysql.createConnection(require('./dbConfig'));
     new Promise(function(response, reject){
         // Определения id, с которым нужно создать комнату в названии
@@ -13,7 +13,7 @@ module.exports = (RoomName, id_admin) => {
             "(id INT NOT NULL PRIMARY KEY AUTO_INCREMENT," +
             "message TEXT NOT NULL," +
             "author TEXT NOT NULL," +
-            "date DATE NOT NULL)", 
+            "date DATETIME NOT NULL)", 
             // запись в таблицу rooms о том, что создана новая комната
             (err, res) => {
                 if (err) throw err;
@@ -44,6 +44,9 @@ module.exports = (RoomName, id_admin) => {
         () => {
             console.log('Новая таблица создана');
             connection.end();
+            RESPONSE.send({
+                data: RoomName
+            });
         }
     );
 }
