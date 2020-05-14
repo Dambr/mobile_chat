@@ -22,19 +22,27 @@ module.exports = (RoomName, id_admin, RESPONSE) => {
                 null + ", " +
                 // оборачиваем название комнаты в одинарные ковычки
                 // чтобы записалось
-                "'" + RoomName + "'" +
+                "'" + RoomName + "'" + ", " +
+                id_admin + 
                 ")", 
                 (err, res) => {
                     if (err) throw err;
-                    // добавление значений 
-                    // в таблицу соответствий пользователей и комнат
-                    connection.query("INSERT INTO users_in_rooms VALUES(" + 
-                    id_admin + "," + 
-                    currentId + 
-                    ")",
+                    // Нужно получить текущее значение id комнаты
+                    connection.query("SELECT id FROM rooms WHERE name = " +
+                    "'" + RoomName + "'",
                     (err, res) => {
                         if (err) throw err;
-                        response();
+                        currentId = res[0]['id'];
+                        // добавление значений 
+                        // в таблицу соответствий пользователей и комнат
+                        connection.query("INSERT INTO users_in_rooms VALUES(" + 
+                        id_admin + "," + 
+                        currentId + 
+                        ")",
+                        (err, res) => {
+                            if (err) throw err;
+                            response();
+                        });
                     });
                 });
             });

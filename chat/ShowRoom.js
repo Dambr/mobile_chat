@@ -1,5 +1,5 @@
 const mysql = require('mysql');
-module.exports = (RoomName, Login, RESPONSE) => {
+module.exports = (RoomName, userData, RESPONSE) => {
     const connection = mysql.createConnection(require('./dbConfig'));
     let Participants = new Promise(function(response, reject){
         // Получаем все данные пользователям, которые сидят в текущей комнате
@@ -29,7 +29,7 @@ module.exports = (RoomName, Login, RESPONSE) => {
     Promise.all([Participants, LastMessages]).then((values => {
         connection.end();
         RESPONSE.render('room.ejs', {
-            login: Login,
+            userData: userData,
             roomName: RoomName,
             participants: JSON.stringify(values[0]),
             lastMessages: JSON.stringify(values[1])

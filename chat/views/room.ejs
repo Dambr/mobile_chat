@@ -1,23 +1,35 @@
-Ваш логин:<br>
-<div id="login"><%= login %></div>
-Название комнаты:<br>
-<div id="room"><%= roomName %></div>
-<br><br><br>
-<ul id="participants">
-Список Участников:<br>
-<%= participants %><br><br><br>
-</ul>
-Последние 5 сообщений:<br>
-<%= lastMessages %><br><br><br>
 <!doctype html>
 <html>
 <head>
-    <title>Socket.IO chat</title>
+    <title><%= roomName %></title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.2.13/dist/semantic.min.css">
 </head>
 <body>
+<div id="deleteMarker"></div>
+<form action="/room" method="POST">
+    <input type="text" name="roomName" value="<%= roomName %>" style="display: none;">
+    <input type="text" name="userData" value="<%= userData %>" style="display: none;">
+    <input type="submit" value="Обновить">
+</form>
+<div id="manage"></div>
+Данные пользователя:<br>
+<div id="userData"><%= userData %></div>
+<script>
+    let userData = JSON.parse(document.getElementById('userData').textContent);
+</script>
+Название комнаты:<br>
+<div id="room"><%= roomName %></div>
+<br><br><br>
+Список Участников:<br>
+<ul id="participants">
+    <% JSON.parse(participants).forEach(function(participant){ %>
+        <li><%= JSON.stringify(participant) %></li>
+    <% }); %>
+</ul><br><br><br>
+Последние 5 сообщений:<br>
+<%= lastMessages %><br><br><br>
 <ul id="messages"></ul>
-<form action="">
+<form id="sendMessage">
     <input id="m" autocomplete="off" /><button>Send</button>
 </form>
 
@@ -25,22 +37,158 @@
 <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
 <!-- <script src="https://cdn.jsdelivr.net/npm/semantic-ui@2.2.13/dist/semantic.min.js"></script> -->
 <script>
+    var socket = io();
     $(function () {
-        var socket = io();
         socket.emit('join', {room: document.getElementById("room").textContent});
-        $('form').submit(function(){
-            socket.emit('chat message', {
-                author: document.getElementById("login").textContent,
-                room: document.getElementById("room").textContent,
-                message:$('#m').val()
-            });
-            $('#m').val('');
-            return false;
+        $('#sendMessage').submit(function(){
+            // Если нет сообщения о том, что комната удалена
+            if (document.getElementById('deleteMarker').textContent == ''){
+                socket.emit('chat message', {
+                    author: userData.login,// document.getElementById("login").textContent,
+                    room: document.getElementById("room").textContent,
+                    message:$('#m').val()
+                });
+                $('#m').val('');
+                return false;
+            } else {
+                return false;
+            }
         });
         socket.on('chat message', function(msg){
             $('#messages').append($('<li>').text(msg.message));
         });
+        socket.on('delete user id', function(msg){
+            for (let i = 0; i < document.getElementById('participants').children.length; i++){
+                if (JSON.parse(document.getElementById('participants').children[i].textContent).id == msg.id){
+                    document.getElementById('participants').children[i].remove();
+                }
+            }
+        });
+        socket.on('delete room', function(msg){
+            document.getElementById('deleteMarker').textContent = msg.message;
+        });
     });
+</script>
+<!-- Определяем, будет ли отображаться кнопка Добавить пользователя -->
+<!-- А так же удалить пользователя -->
+<!-- И удлаить комнату -->
+<script>
+    async function DeleteUserFromRoomById(url, id){
+        const response = await fetch(url, {
+            method: 'POST',
+            body: JSON.stringify({
+                room_name: document.getElementById('room').textContent,
+                user_id: id
+            }),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        const result = await response.json();
+        console.log(result);
+    }
+    async function DeleteCurrentRoom(url){
+        const response = await fetch(url, {
+            method: 'POST',
+            body: JSON.stringify({
+                room_name: document.getElementById('room').textContent
+            }),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        const result = await response.json();
+        console.log(result);
+    }
+    async function AddUserById(url, id){
+        const response = await fetch(url, {
+            method: 'POST',
+            body: JSON.stringify({
+                room_name: document.getElementById('room').textContent,
+                id_user: id
+            }),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        console.log(result.data);
+        let li = document.createElement('li');
+        li.textContent = result.data;
+        document.getElementById("participants").appendChild(li);
+    }
+    async function CheckHostOfRoom(url){
+        const response = await fetch(url, {
+            method: 'POST',
+            body: JSON.stringify({
+                room_name: document.getElementById('room').textContent,
+                id_admin: userData.id
+            }),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        const result = await response.json();
+        console.log(result);
+        // Если вернулось true, отрисовываем необходимые кнопки
+        if (result.data){
+            // Создание поля для добавления юзера в чат
+            let container = document.createElement('div');
+            let input_add = document.createElement('input');
+            input_add.id = "userId_forAdd";
+            input_add.type = "text";
+            // Создание кнопки для добавления юзера в чат
+            let button_add = document.createElement('button');
+            button_add.textContent = "Добавить пользователя"
+            button_add.onclick = () => {
+                let id = document.getElementById("userId_forAdd").value;
+                if (id != ''){
+                    AddUserById('http://localhost:4000/addUserById', id);
+                }
+            };
+            container.appendChild(input_add);
+            container.appendChild(button_add);
+            document.getElementById('manage').appendChild(container);
+            document.getElementById('manage').appendChild(document.createElement('br'));
+
+            // Создание кнопки для удаления чата
+            let button_deleteRoom = document.createElement('button');
+            button_deleteRoom.textContent = "Удалить комнату";
+            button_deleteRoom.onclick = () => {
+                DeleteCurrentRoom('http://localhost:4000/deleteCurrentRoom');
+                socket.emit('delete room', {
+                    room: document.getElementById("room").textContent
+                });
+            };
+            document.getElementById('manage').appendChild(button_deleteRoom);
+
+            // Создание поля для удаления пользователя из чата
+            container = document.createElement('div');
+            let input_deleteUser = document.createElement('input');
+            input_deleteUser.id = "userId_forDelete";
+            input_deleteUser.type = "text";
+            // Создание кнопки для удаления юзера из чата
+            let button_deleteUser = document.createElement('button');
+            button_deleteUser.textContent = "Удалить пользователя"
+            button_deleteUser.onclick = () => {
+                let id = document.getElementById("userId_forDelete").value;
+                if (id != ''){
+                    console.log('Pressed');
+                    DeleteUserFromRoomById('http://localhost:4000/deleteUserFromRoomById', id);
+                    socket.emit('delete user id', {
+                        room: document.getElementById("room").textContent,
+                        id
+                    });
+                }
+            }
+
+            container.appendChild(input_deleteUser);
+            container.appendChild(button_deleteUser);
+            document.getElementById('manage').appendChild(container);
+        }
+    }
+    CheckHostOfRoom('http://localhost:4000/checkHostOfRoom');
 </script>
 </body>
 </html>

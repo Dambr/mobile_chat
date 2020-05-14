@@ -4,7 +4,8 @@ module.exports = (Login, Password, RESPONSE) => {
     let Rooms;
     const connection = mysql.createConnection(require('./dbConfig'));
     new Promise(function(response, reject){
-        connection.query("SELECT password FROM users WHERE login =" +
+        connection.query(
+        "SELECT password FROM users WHERE login =" +
         "'" + Login + "'", 
         (err, res) => {
             if (err) throw err;
@@ -13,16 +14,18 @@ module.exports = (Login, Password, RESPONSE) => {
                 password = password[0]['password'];
             }
             if (password == Password) {
-                connection.query("SELECT * FROM users WHERE login =" +
+                connection.query(
+                "SELECT * FROM users WHERE login =" +
                 "'" + Login + "'", 
                 (err, res) => {
                     if (err) throw err;
                     res = res[0];
                     // delete res.password;
                     userData = res;
-                    connection.query("SELECT name FROM rooms WHERE id IN " +
+                    connection.query(
+                    "SELECT name FROM rooms WHERE id IN " +
                     "(" +
-                        "SELECT room_id FROM users_in_rooms WHERE user_id = (" +
+                        "SELECT room_id FROM users_in_rooms WHERE user_id IN (" +
                             "SELECT id FROM users WHERE login = " +
                             "'" + Login + "')" +
                     ")", (err, res) => {
@@ -44,13 +47,8 @@ module.exports = (Login, Password, RESPONSE) => {
             console.log('Пользователь прошел проверку');
             connection.end();
             RESPONSE.render('lk.ejs', {
-                id: userData.id,
-                name: userData.name,
-                login: userData.login,
-                password: userData.password,
-                surname: userData.surname,
-                patronymic: userData.patronymic,
-                rooms: Rooms
+                userData: JSON.stringify(userData),
+                Rooms
             });
         }
     )
